@@ -1,143 +1,139 @@
-# Cert-Manager CA Injector - CleanStart Container
+# CleanStart Container for Cert-Manager CA Injector
 
-A security-hardened container image for cert-manager's CA Injector controller, enabling automatic CA bundle injection into webhook configurations and API services for seamless TLS certificate validation.
+A security-hardened container image for cert-manager's CA Injector controller.  
+Automatically injects CA bundles into Kubernetes webhook configurations, API services, and CRDs to ensure secure TLS validation across the cluster.  
+Optimized for enterprise Kubernetes environments with non-root execution and minimal attack surface.
 
-## Overview
+---
 
-The cert-manager CA Injector is a Kubernetes controller that automatically injects CA bundle data from cert-manager-issued certificates into webhook configurations and API services. This ensures that Kubernetes webhooks and API services can properly validate TLS certificates issued by cert-manager, enabling secure communication between components without manual CA bundle management.
+## Key Features
 
-**Key Features:**
-* Automatic CA bundle injection into MutatingWebhookConfigurations
-* Automatic CA bundle injection into ValidatingWebhookConfigurations
-* Automatic CA bundle injection into APIServices
-* Automatic CA bundle injection into CustomResourceDefinitions
-* Integration with cert-manager for automated certificate lifecycle management
-* Leader election support for high availability deployments
-* Metrics endpoint for monitoring and observability
-* Lightweight and efficient operation with minimal resource requirements
-* Secure CA bundle handling and validation
-* Continuous monitoring and automatic updates of webhook configurations
+- Automatic CA bundle injection into:
+  - MutatingWebhookConfigurations
+  - ValidatingWebhookConfigurations
+  - APIService resources
+  - CustomResourceDefinitions
+- Real-time monitoring of cert-manager certificates
+- Seamless integration with cert-manager certificate lifecycle
+- Leader election support for high availability
+- Lightweight and resource-efficient
+- Secure CA bundle extraction and handling
+- Built-in metrics endpoint (Prometheus compatible)
 
-**Common Use Cases:**
-* Automated TLS certificate provisioning for Kubernetes webhooks
-* Secure communication between Kubernetes API server and webhook services
-* Automated CA bundle management for admission webhooks
-* API service certificate validation automation
-* Multi-webhook certificate management in Kubernetes clusters
-* Development and staging environment webhook certificate automation
-* CI/CD pipeline webhook certificate provisioning
-* Microservices architecture with automated webhook certificate management
-* Custom resource definition webhook certificate automation
+---
 
-## What Cert-Manager CA Injector Does
+## Common Use Cases
 
-The CA Injector operates as a controller that continuously monitors and updates webhook configurations:
+- Automated TLS verification for Kubernetes webhooks  
+- Secure API server ↔ webhook communication  
+- Automated CA rotation after certificate renewal  
+- Cluster-wide CA bundle propagation  
+- Webhook security automation in microservices  
+- CI/CD environments requiring automated certificate trust  
+- CRD webhook certificate management  
 
-1. **Monitors Certificates**: Watches cert-manager Certificate resources across all namespaces to detect new certificates and CA bundles
-2. **Extracts CA Bundles**: Reads CA bundle data from Certificate secrets when certificates are issued or renewed
-3. **Injects into Webhooks**: Automatically updates MutatingWebhookConfigurations and ValidatingWebhookConfigurations with the correct CA bundles
-4. **Injects into API Services**: Updates APIServices with CA bundles for proper TLS validation
-5. **Injects into CRDs**: Updates CustomResourceDefinitions with CA bundles for webhook validation
-6. **Maintains Sync**: Continuously watches for changes and keeps webhook configurations up-to-date automatically
-7. **Leader Election**: Uses leader election to ensure only one instance is active in high availability deployments
+---
 
-## Image Details
+## Pull Commands  
+Download the runtime container images:
 
-**Image:** `cleanstart/cert-manager-cainjector:latest-dev`
+docker pull cleanstart/cert-manager-cainjector:latest
+docker pull cleanstart/cert-manager-cainjector:latest-dev
 
-**Key Specifications:**
-* **Binary Location:** `/usr/bin/cainjector`
-* **User:** Non-root (UID 1000)
-* **Architecture:** `amd64`
-* **OS:** `linux`
-* **Metrics Port:** `9402` (default metrics HTTP port)
-* **SSL Certificates:** Pre-configured at `/etc/ssl/certs/ca-certificates.crt`
+yaml
+Copy code
 
-## How It Works
+---
 
-The CleanStart cert-manager CA Injector image provides a security-hardened implementation of the cert-manager cainjector component:
+## Basic Test Run  
+Run the container with a basic test command:
 
-1. **Security Hardening**: Runs as non-root user (UID 1000) with all Linux capabilities dropped, following the principle of least privilege
-2. **Privilege Escalation Prevention**: Configured with `allowPrivilegeEscalation: false` to prevent privilege escalation attacks
-3. **Pre-Configured SSL/TLS**: Includes complete SSL certificate bundle for secure connections to Kubernetes API server
-4. **Kubernetes Integration**: Automatically receives pod metadata (POD_NAME, POD_NAMESPACE) through downward API for proper logging
-5. **Resource Management**: Deployed with conservative resource requests and limits for predictable resource usage
-6. **Health Monitoring**: Built-in metrics endpoint enables Kubernetes monitoring and observability
-7. **Leader Election**: Supports leader election for high availability deployments, ensuring only one active instance
+kubectl run cainjector-test
+--image=cleanstart/cert-manager-cainjector:latest-dev
+--restart=Never
+-- /usr/bin/cainjector --help
 
-When cert-manager is installed, the CA Injector automatically ensures that all webhook configurations reference the correct CA bundles from cert-manager-issued certificates, enabling seamless TLS validation without manual intervention.
+yaml
+Copy code
 
-## Kubernetes Deployment
+---
 
-The `kubernetes/` directory contains a complete, production-ready Kubernetes deployment:
+## Production Deployment  
+Recommended production deployment with hardened security:
 
-* `deployment.yaml` - Complete deployment manifest (ServiceAccount, ClusterRole, ClusterRoleBinding, Deployment)
-* `README.md` - Comprehensive deployment guide with step-by-step instructions, testing procedures, and troubleshooting
+docker run -d --name cert-manager-cainjector-prod
+--read-only
+--security-opt=no-new-privileges
+--user 1000:1000
+cleanstart/cert-manager-cainjector:latest
 
-## Configuration
+yaml
+Copy code
+
+---
+
+## Architecture Support  
+
+### Multi-Platform Images
+
+docker pull --platform linux/amd64 cleanstart/cert-manager-cainjector:latest
+docker pull --platform linux/arm64 cleanstart/cert-manager-cainjector:latest
+
+yaml
+Copy code
+
+---
+
+## Kubernetes Configuration
 
 ### Ports
+9402 – Metrics HTTP port
 
-* **9402** - Metrics HTTP port (TCP) - Exposes Prometheus metrics for monitoring
+yaml
+Copy code
 
 ### Environment Variables
+- `SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt`
+- `POD_NAME` (auto-populated)
+- `POD_NAMESPACE` (auto-populated)
 
-* `SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt` - SSL certificate path for secure communication with Kubernetes API server
-* `PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin` - Standard PATH environment variable
-* `POD_NAME` - Automatically populated from Kubernetes pod metadata via downward API
-* `POD_NAMESPACE` - Automatically populated from Kubernetes pod metadata via downward API
+### Required RBAC Permissions
+The CA Injector needs cluster-scoped permissions to:
+- Read Secrets (extract CA bundles)
+- Update webhook configurations (mutating + validating)
+- Update APIService resources
+- Update CustomResourceDefinitions
+- Watch cert-manager certificate resources
+- Manage leader election leases
 
-### RBAC Permissions
-
-The CA Injector requires cluster-scoped permissions to:
-* Read secrets and configmaps (to extract CA bundles from certificate secrets)
-* Read and update MutatingWebhookConfigurations and ValidatingWebhookConfigurations
-* Read and update APIServices
-* Read and update CustomResourceDefinitions
-* Watch cert-manager resources (certificates, certificaterequests, issuers, clusterissuers)
-* Read CustomResourceDefinitions (to check if cert-manager CRDs are installed)
-* Manage leader election leases (for high availability)
+---
 
 ## Best Practices
 
-* Deploy the CA Injector with proper resource limits to ensure predictable resource usage
-* Monitor CA Injector logs for injection success rates and troubleshooting
-* Use the metrics endpoint for Prometheus monitoring and alerting
-* Keep the container image updated with the latest security patches
-* Implement proper network policies if required by your security policies
-* Review cert-manager Certificate resources to ensure proper CA bundle generation
-* Enable leader election for high availability deployments
-* Monitor webhook configurations to verify CA bundles are being injected correctly
+- Enable leader election for HA deployments  
+- Set CPU/Memory resource limits  
+- Monitor metrics on port 9402  
+- Apply Kubernetes network policies if required  
+- Keep container images updated regularly  
+- Validate cert-manager Certificate and CA bundle configuration  
+- Use read-only filesystem and drop all Linux capabilities  
 
-## Security Notes
+---
 
-* The container runs as non-root user (UID 1000)
-* All Linux capabilities are dropped for security
-* Privilege escalation is prevented (`allowPrivilegeEscalation: false`)
-* SSL certificates are pre-configured for secure communication with Kubernetes API server
-* Security context prevents privilege escalation and enforces non-root execution
-* CA bundles are read from secrets and injected securely into webhook configurations
-* ClusterRole permissions follow the principle of least privilege
-* Leader election ensures only one active instance, reducing attack surface
+## Resources
 
-## Observability
+- Official Documentation: https://cert-manager.io/docs/
+- View Provenance, SBOM, Signature: https://images.cleanstart.com/images/cert-manager-cainjector
+- CleanStart All Images: https://images.cleanstart.com
+- CleanStart Community Images: https://hub.docker.com/u/cleanstart
+- Docker Hub Repository: https://hub.docker.com/r/cleanstart/cert-manager-cainjector
 
-The CA Injector provides structured logging that includes:
-* Controller startup and initialization events
-* Certificate monitoring and CA bundle extraction events
-* Webhook configuration update events (mutating, validating, API services, CRDs)
-* Leader election status and lease acquisition
-* Error conditions and failure reasons
-* Metrics server startup and binding status
+---
 
-The CA Injector exposes a Prometheus metrics endpoint on port 9402, providing observability into:
-* Controller reconciliation rates
-* Webhook configuration update counts
-* Error rates and failure metrics
-* Leader election status
-* Certificate monitoring statistics
+## Vulnerability Disclaimer
 
-Health check functionality allows Kubernetes to monitor CA Injector readiness. The metrics endpoint can be used for Kubernetes liveness and readiness probes, enabling proper integration with Kubernetes monitoring systems.
+CleanStart provides Docker images that use third-party open-source components maintained by independent contributors. While CleanStart applies industry-standard security practices, it cannot guarantee the integrity of upstream components.
 
-For deployment instructions, configuration details, and troubleshooting guides, see the `kubernetes/README.md` file in the `kubernetes/` directory.
+Users acknowledge that open-source software may contain undisclosed vulnerabilities or introduce new risks. CleanStart shall not be held liable for security issues originating from third-party libraries, including but not limited to zero-day exploits, supply-chain attacks, or contributor-introduced risks.
 
+Security remains a shared responsibility — CleanStart provides secure updated images, while users 
