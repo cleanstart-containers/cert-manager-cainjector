@@ -4,7 +4,7 @@ A security-hardened container image for cert-manager's CA Injector controller.
 Automatically injects CA bundles into Kubernetes webhook configurations, API services, and CRDs to ensure secure TLS validation across the cluster.  
 Optimized for enterprise Kubernetes environments with non-root execution and minimal attack surface.
 
----
+- --
 
 ## Key Features
 
@@ -20,7 +20,7 @@ Optimized for enterprise Kubernetes environments with non-root execution and min
 - Secure CA bundle extraction and handling
 - Built-in metrics endpoint (Prometheus compatible)
 
----
+- --
 
 ## Common Use Cases
 
@@ -32,9 +32,10 @@ Optimized for enterprise Kubernetes environments with non-root execution and min
 - CI/CD environments requiring automated certificate trust  
 - CRD webhook certificate management  
 
----
+- --
 
 ## Pull Commands  
+
 Download the runtime container images:
 
 docker pull cleanstart/cert-manager-cainjector:latest
@@ -43,34 +44,36 @@ docker pull cleanstart/cert-manager-cainjector:latest-dev
 yaml
 Copy code
 
----
+- --
 
 ## Basic Test Run  
+
 Run the container with a basic test command:
 
 kubectl run cainjector-test
---image=cleanstart/cert-manager-cainjector:latest-dev
---restart=Never
--- /usr/bin/cainjector --help
+- -image=cleanstart/cert-manager-cainjector:latest-dev
+- -restart=Never
+- - /usr/bin/cainjector --help
 
 yaml
 Copy code
 
----
+- --
 
 ## Production Deployment  
+
 Recommended production deployment with hardened security:
 
 docker run -d --name cert-manager-cainjector-prod
---read-only
---security-opt=no-new-privileges
---user 1000:1000
+- -read-only
+- -security-opt=no-new-privileges
+- -user 1000:1000
 cleanstart/cert-manager-cainjector:latest
 
 yaml
 Copy code
 
----
+- --
 
 ## Architecture Support  
 
@@ -82,22 +85,25 @@ docker pull --platform linux/arm64 cleanstart/cert-manager-cainjector:latest
 yaml
 Copy code
 
----
+- --
 
 ## Kubernetes Configuration
 
 ### Ports
+
 9402 – Metrics HTTP port
 
 yaml
 Copy code
 
 ### Environment Variables
+
 - `SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt`
 - `POD_NAME` (auto-populated)
 - `POD_NAMESPACE` (auto-populated)
 
 ### Required RBAC Permissions
+
 The CA Injector needs cluster-scoped permissions to:
 - Read Secrets (extract CA bundles)
 - Update webhook configurations (mutating + validating)
@@ -106,7 +112,7 @@ The CA Injector needs cluster-scoped permissions to:
 - Watch cert-manager certificate resources
 - Manage leader election leases
 
----
+- --
 
 ## Best Practices
 
@@ -118,17 +124,15 @@ The CA Injector needs cluster-scoped permissions to:
 - Validate cert-manager Certificate and CA bundle configuration  
 - Use read-only filesystem and drop all Linux capabilities  
 
----
+- --
 
 ## Resources
 
-- Official Documentation: https://cert-manager.io/docs/
-- View Provenance, SBOM, Signature: https://images.cleanstart.com/images/cert-manager-cainjector
-- CleanStart All Images: https://images.cleanstart.com
-- CleanStart Community Images: https://hub.docker.com/u/cleanstart
-- Docker Hub Repository: https://hub.docker.com/r/cleanstart/cert-manager-cainjector
-
----
+- **Official Documentation:** https://cert-manager.io/docs/
+- **Provenance / SBOM / Signature:** https://images.cleanstart.com/images/cert-manager-cainjector
+- **Docker Hub:** https://hub.docker.com/r/cleanstart/cert-manager-cainjector
+- **CleanStart All Images:** https://images.cleanstart.com
+- **CleanStart Community Images:** https://hub.docker.com/u/cleanstart
 
 ## Vulnerability Disclaimer
 
