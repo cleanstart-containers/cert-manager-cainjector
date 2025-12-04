@@ -4,7 +4,7 @@ A security-hardened container image for cert-manager's CA Injector controller. A
 
 **📌 Base Foundation:** Security-hardened, minimal base OS designed for enterprise containerized environments from CleanStart Registry.
 
-**Image Path:** `cleanstart/cert-manager-cainjector`
+**Image Path:** `ghcr.io/cleanstart-containers/cert-manager-cainjector`
 
 **Registry:** CleanStart Registry
 
@@ -51,10 +51,10 @@ Typical scenarios where this container excels:
 
 Download the runtime container images:
 ```bash
-docker pull cleanstart/cert-manager-cainjector:latest
+docker pull ghcr.io/cleanstart-containers/cert-manager-cainjector:latest
 ```
 ```bash
-docker pull cleanstart/cert-manager-cainjector:latest-dev
+docker pull ghcr.io/cleanstart-containers/cert-manager-cainjector:latest-dev
 ```
 
 ### Basic Test Run
@@ -62,7 +62,7 @@ docker pull cleanstart/cert-manager-cainjector:latest-dev
 Run the container with a basic test command:
 ```bash
 kubectl run cainjector-test \
-  --image=cleanstart/cert-manager-cainjector:latest-dev \
+  --image=ghcr.io/cleanstart-containers/cert-manager-cainjector:latest-dev \
   --restart=Never \
   -- /usr/bin/cainjector --help
 ```
@@ -75,7 +75,7 @@ docker run -d --name cert-manager-cainjector-prod \
   --read-only \
   --security-opt=no-new-privileges \
   --user 1000:1000 \
-  cleanstart/cert-manager-cainjector:latest
+  ghcr.io/cleanstart-containers/cert-manager-cainjector:latest
 ```
 
 ---
@@ -155,10 +155,10 @@ securityContext:
 
 ### Multi-Platform Images
 ```bash
-docker pull --platform linux/amd64 cleanstart/cert-manager-cainjector:latest
+docker pull --platform linux/amd64 ghcr.io/cleanstart-containers/cert-manager-cainjector:latest
 ```
 ```bash
-docker pull --platform linux/arm64 cleanstart/cert-manager-cainjector:latest
+docker pull --platform linux/arm64 ghcr.io/cleanstart-containers/cert-manager-cainjector:latest
 ```
 
 ---
