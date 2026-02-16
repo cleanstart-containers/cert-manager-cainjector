@@ -168,7 +168,7 @@ docker pull --platform linux/arm64 ghcr.io/cleanstart-containers/cert-manager-ca
 - **Official Documentation:** https://cert-manager.io/docs/
 - **Provenance / SBOM / Signature:** https://images.cleanstart.com/images/cert-manager-cainjector
 - **Docker Hub:** https://hub.docker.com/r/cleanstart/cert-manager-cainjector
-- **CleanStart All Images:** https://images.cleanstart.com
+- **CleanStart All Images:** https://images.cleanstart.com/images/cert-manager-cainjector/details
 - **CleanStart Community Images:** https://hub.docker.com/u/cleanstart
 
 ---
