@@ -52,11 +52,16 @@ kubectl get nodes
 ### Step 2: Deploy the CA Injector
 
 ```bash
+# Install CRD's
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+```
+
+```bash
 # Apply the deployment manifest
 kubectl apply -f deployment.yaml
 
 # Verify the pod is running
-kubectl get pods -l app=cert-manager-cainjector -w
+kubectl get pods -l app=cert-manager-cainjector -n cert-manager -w
 ```
 
 **Expected Output:**
@@ -69,20 +74,20 @@ cert-manager-cainjector-xxxxxxxxxx-xxxxx  1/1     Running   0          30s
 
 ```bash
 # Check pod status
-kubectl get pods -l app=cert-manager-cainjector
+kubectl get pods -l app=cert-manager-cainjector -n cert-manager
 
 # View pod logs (once pod is running)
-kubectl logs -l app=cert-manager-cainjector
+kubectl logs -l app=cert-manager-cainjector -n cert-manager
 
 # Describe the deployment
-kubectl describe deployment cert-manager-cainjector
+kubectl describe deployment cert-manager-cainjector -n cert-manager
 
 # Check ServiceAccount
-kubectl get serviceaccount cert-manager-cainjector
+kubectl get serviceaccount cert-manager-cainjector -n cert-manager
 
 # Check ClusterRole and ClusterRoleBinding
-kubectl get clusterrole cert-manager-cainjector
-kubectl get clusterrolebinding cert-manager-cainjector
+kubectl get clusterrole cert-manager-cainjector -n cert-manager
+kubectl get clusterrolebinding cert-manager-cainjector -n cert-manager
 ```
 
 ## Testing the Functionality
@@ -91,10 +96,10 @@ kubectl get clusterrolebinding cert-manager-cainjector
 
 ```bash
 # Check pod status
-kubectl get pods -l app=cert-manager-cainjector
+kubectl get pods -l app=cert-manager-cainjector -n cert-manager
 
 # View logs to ensure it started successfully
-kubectl logs -l app=cert-manager-cainjector
+kubectl logs -l app=cert-manager-cainjector -n cert-manager
 
 # Expected log output should show:
 # - Controller starting up
@@ -111,20 +116,20 @@ kubectl logs -l app=cert-manager-cainjector
 
 ```bash
 # Check that ClusterRole has the correct permissions
-kubectl describe clusterrole cert-manager-cainjector
+kubectl describe clusterrole cert-manager-cainjector -n cert-manager
 
 # Verify ClusterRoleBinding is correct
-kubectl describe clusterrolebinding cert-manager-cainjector
+kubectl describe clusterrolebinding cert-manager-cainjector -n cert-manager
 
 # Test if the ServiceAccount can access required resources
 kubectl auth can-i get mutatingwebhookconfigurations \
-  --as=system:serviceaccount:default:cert-manager-cainjector
+  --as=system:serviceaccount:cert-manager:cert-manager-cainjector
 
 kubectl auth can-i get validatingwebhookconfigurations \
-  --as=system:serviceaccount:default:cert-manager-cainjector
+  --as=system:serviceaccount:cert-manager:cert-manager-cainjector
 
 kubectl auth can-i get apiservices \
-  --as=system:serviceaccount:default:cert-manager-cainjector
+  --as=system:serviceaccount:cert-manager:cert-manager-cainjector
 ```
 
 **Expected Output:**
@@ -135,8 +140,24 @@ All commands should return `yes`, indicating the ServiceAccount has the required
 If you have cert-manager installed, you can test that the CA injector properly injects CA bundles into webhook configurations:
 
 ```bash
+# Install CRD's
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+
 # Check if cert-manager is installed
 kubectl get pods -n cert-manager
+
+# Create simple ClusterIssuer
+cat <<EOF | kubectl apply -f -
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-cluster-issuer
+spec:
+  selfSigned: {}
+EOF
+
+# Check if clusterissuer is installed
+kubectl get clusterissuer
 
 # Create a test Certificate resource
 cat <<EOF | kubectl apply -f -
@@ -148,7 +169,7 @@ metadata:
 spec:
   secretName: test-cert-tls
   issuerRef:
-    name: <your-issuer-name>
+    name: selfsigned-cluster-issuer
     kind: ClusterIssuer
   commonName: example.com
   dnsNames:
@@ -159,23 +180,23 @@ EOF
 kubectl get mutatingwebhookconfigurations -o yaml | grep caBundle
 
 # Check the CA injector logs to see if it processed the webhook
-kubectl logs -l app=cert-manager-cainjector --tail=50
+kubectl logs -l app=cert-manager-cainjector -n cert-manager --tail=50
 ```
 
 ### Test 4: Verify Image Configuration
 
 ```bash
 # Check the running pod's image
-kubectl get pod -l app=cert-manager-cainjector -o jsonpath='{.items[0].spec.containers[0].image}'
+kubectl get pod -l app=cert-manager-cainjector -n cert-manager -o jsonpath='{.items[0].spec.containers[0].image}' 
 
 # Expected output:
 # cleanstart/cert-manager-cainjector:latest-dev
 
 # Verify the binary exists and is executable
-kubectl exec -it deployment/cert-manager-cainjector -- ls -la /usr/bin/cainjector
+kubectl exec -it deployment/cert-manager-cainjector -n cert-manager -- ls -la /usr/bin/cainjector
 
 # Check environment variables
-kubectl exec -it deployment/cert-manager-cainjector -- env | grep -E "SSL_CERT_FILE|PATH"
+kubectl exec -it deployment/cert-manager-cainjector -n cert-manager -- env | grep -E "SSL_CERT_FILE|PATH"
 ```
 
 **Expected Output:**
@@ -188,24 +209,21 @@ kubectl exec -it deployment/cert-manager-cainjector -- env | grep -E "SSL_CERT_F
 
 ```bash
 # Verify the pod is running as non-root
-kubectl exec -it deployment/cert-manager-cainjector -- id
+kubectl exec -it deployment/cert-manager-cainjector -n cert-manager -- id
 # Expected output should show UID 1000 (non-root)
 
-# Check that capabilities are dropped
-kubectl exec -it deployment/cert-manager-cainjector -- capsh --print
-
 # Verify SSL certificates are accessible
-kubectl exec -it deployment/cert-manager-cainjector -- ls -la /etc/ssl/certs/ca-certificates.crt
+kubectl exec -it deployment/cert-manager-cainjector -n cert-manager -- ls -la /etc/ssl/certs/ca-certificates.crt
 ```
 
 ### Test 6: Monitor Resource Usage
 
 ```bash
 # Check resource usage
-kubectl top pod -l app=cert-manager-cainjector
+kubectl top pod -l app=cert-manager-cainjector -n cert-manager
 
 # Describe the pod to see resource requests/limits
-kubectl describe pod -l app=cert-manager-cainjector | grep -A 10 "Limits\|Requests"
+kubectl describe pod -l app=cert-manager-cainjector -n cert-manager | grep -A 10 "Limits\|Requests"
 ```
 
 ## Deployment Components
@@ -268,15 +286,12 @@ If you want to replace the default cert-manager cainjector:
 
 ```bash
 # Scale down the default cainjector
-kubectl scale deployment cert-manager-cainjector -n cert-manager --replicas=0
-
-# Deploy this custom cainjector in the cert-manager namespace
-# (You'll need to update the namespace in deployment.yaml)
+kubectl scale deployment cert-manager-cainjector -n cert-manager --replicas=2
 ```
 
 ### Option 2: Run for Testing
 
-For testing purposes, you can run this cainjector alongside the default one (in a different namespace or with different labels). However, having multiple cainjectors may cause conflicts.
+For testing purposes, you can run this cainjector alongside the default one (in a different namespace or with different labels). However, having multiple cainjectors may cause conflicts. So, delete the default cainjector.
 
 ## Cleanup
 
